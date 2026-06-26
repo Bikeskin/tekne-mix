@@ -116,48 +116,44 @@
   }
   .weekrow .tot b{color:var(--turq);font-size:16px;font-weight:700}
 
-  /* ---------- leaderboard ---------- */
-  #board{display:flex;flex-direction:column;gap:10px;position:relative}
+  /* ---------- leaderboard (Variant A: tek satır, çift stepper) ---------- */
+  #board{display:flex;flex-direction:column;gap:8px;position:relative}
   .card{
+    display:flex;align-items:center;gap:8px;
     background:linear-gradient(180deg,var(--card),var(--card-2));
-    border:1px solid var(--line);border-radius:16px;padding:13px 14px 14px;
+    border:1px solid var(--line);border-radius:12px;padding:7px 10px;height:54px;
     will-change:transform;
   }
   .card.lead{border-color:rgba(245,196,81,.5);box-shadow:0 0 0 1px rgba(245,196,81,.18) inset}
-  .card .head{display:flex;align-items:center;gap:10px}
   .rank{
-    font-family:"Space Mono";font-size:13px;color:var(--foam-dim);width:22px;flex:0 0 22px;
+    font-family:"Space Mono";font-size:12px;color:var(--foam-dim);width:16px;flex:0 0 16px;
     text-align:center;font-weight:700;
   }
   .card.lead .rank{color:var(--sun)}
-  .crewname{font-weight:700;font-size:17px;letter-spacing:.01em;display:flex;align-items:center;gap:8px;min-width:0}
-  .crewname .em{font-size:18px;flex:0 0 auto}
-  .crewname .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .counter .v.bump{animation:bump .32s ease}
+  .cem{font-size:18px;flex:0 0 auto}
+  .nm{flex:1;min-width:0;font-weight:700;font-size:15px;letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .grp{display:flex;align-items:center;gap:3px;flex:0 0 auto}
+  .grp .lbl{font-size:14px;margin-right:1px}
+  .grp .v{font-family:"Space Mono";font-weight:700;font-size:16px;width:20px;text-align:center;
+    display:inline-block;transform-origin:center}
+  .grp.kokteyl .v{color:var(--turq)}
+  .grp.tekila  .v{color:var(--coral)}
+  .grp .v.bump{animation:bump .32s ease}
   @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.4)}100%{transform:scale(1)}}
 
-  .counters{display:flex;gap:10px;margin-top:12px}
-  .counter{
-    flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px;
-    background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:13px;padding:6px;
-  }
-  .counter .meta{display:flex;flex-direction:column;gap:2px;padding-left:6px;min-width:0}
-  .counter .meta .t{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--foam-dim);display:flex;align-items:center;gap:5px}
-  .counter .meta .v{font-family:"Space Mono";font-weight:700;font-size:20px;line-height:1;display:inline-block;transform-origin:left center}
-  .counter.kokteyl .v{color:var(--turq)}
-  .counter.tekila .v{color:var(--coral)}
-  .btns{display:flex;gap:6px;flex:0 0 auto}
   .step{
-    width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
-    background:rgba(51,219,208,.07);color:var(--foam);font-size:22px;font-weight:700;
+    width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(51,219,208,.08);color:var(--foam);font-size:19px;font-weight:700;
     cursor:pointer;display:grid;place-items:center;line-height:1;user-select:none;
-    transition:transform .08s,background .15s;
+    transition:transform .07s,background .15s;
   }
   .step:hover{background:rgba(51,219,208,.16)}
-  .step:active{transform:scale(.9)}
-  .counter.kokteyl .step.plus{background:rgba(51,219,208,.16);border-color:var(--turq-dim)}
-  .counter.tekila .step.plus{background:rgba(255,122,107,.16);border-color:rgba(255,122,107,.4)}
-  .step.minus{font-size:24px}
+  .step:active{transform:scale(.88)}
+  .grp.kokteyl .step.plus{background:rgba(51,219,208,.18);border-color:var(--turq-dim)}
+  .grp.tekila  .step.plus{background:rgba(255,122,107,.16);border-color:rgba(255,122,107,.45)}
+  .step.minus{font-size:21px}
 
   /* ---------- empty / setup ---------- */
   .panel{
@@ -319,8 +315,8 @@ const firebaseConfig = {
 /* ==================================================================== */
 
 const DRINKS = {
-  kokteyl: { label:"Kokteyl", emoji:"🍹" },
-  tekila:  { label:"Tekila",  emoji:"🥃" }
+  kokteyl: { label:"Kokteyl", emoji:"🍸" },
+  tekila:  { label:"Tekila",  emoji:"🌵" }
 };
 const SEED = [
   {emoji:"🏄", name:"ÖZGEOKYANUS"}, {emoji:"🛸", name:"İLKAYABİİİ"},
@@ -441,11 +437,11 @@ function render(){
   const leadIds = new Set(topTotal>0 ? ranked.filter(p=>total(p)===topTotal).map(p=>p.id) : []);
   if(!top){
     cap.innerHTML = `<div class="label">Bu haftanın kaptanı</div>
-      <div class="empty">Kadro boş. Aşağıdan ekip ekleyip saymaya başlayın 🍹</div>`;
+      <div class="empty">Kadro boş. Aşağıdan ekip ekleyip saymaya başlayın 🍸</div>`;
   } else if(topTotal===0){
     cap.innerHTML = `<div class="waterline" style="height:0"></div>
       <div class="label">Bu haftanın kaptanı</div>
-      <div class="empty">Henüz kimse içmedi. İlk bardağı kim açacak? 🥃</div>`;
+      <div class="empty">Henüz kimse içmedi. İlk bardağı kim açacak? 🌵</div>`;
   } else {
     const tie = ranked.filter(p=>total(p)===topTotal);
     const nameHtml = tie.length>1
@@ -502,14 +498,11 @@ function makeCard(id){
   el.className = "card";
   el.dataset.id = id;
   el.innerHTML = `
-    <div class="head">
-      <span class="rank"></span>
-      <span class="crewname"><span class="em"></span><span class="txt"></span></span>
-    </div>
-    <div class="counters">
-      ${drinkHtml("kokteyl")}
-      ${drinkHtml("tekila")}
-    </div>`;
+    <span class="rank"></span>
+    <span class="cem"></span>
+    <span class="nm"></span>
+    ${drinkHtml("kokteyl")}
+    ${drinkHtml("tekila")}`;
   el.querySelectorAll(".step").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const dr = btn.dataset.drink, delta = btn.dataset.delta;
@@ -521,19 +514,18 @@ function makeCard(id){
 }
 function drinkHtml(k){
   const d = DRINKS[k];
-  return `<div class="counter ${k}">
-    <div class="meta"><span class="t">${d.emoji} ${d.label}</span><span class="v" data-v="${k}">0</span></div>
-    <div class="btns">
-      <button class="step minus" data-drink="${k}" data-delta="-1" aria-label="${d.label} azalt">–</button>
-      <button class="step plus"  data-drink="${k}" data-delta="1"  aria-label="${d.label} artır">+</button>
-    </div>
-  </div>`;
+  return `<span class="grp ${k}">
+    <span class="lbl">${d.emoji}</span>
+    <button class="step minus" data-drink="${k}" data-delta="-1" aria-label="${d.label} azalt">–</button>
+    <span class="v" data-v="${k}">0</span>
+    <button class="step plus" data-drink="${k}" data-delta="1" aria-label="${d.label} artır">+</button>
+  </span>`;
 }
 function updateCard(el, p, index, isLead){
   el.classList.toggle("lead", !!isLead);
   el.querySelector(".rank").textContent = index+1;
-  el.querySelector(".crewname .em").textContent = p.emoji||"";
-  el.querySelector(".crewname .txt").textContent = p.name;
+  el.querySelector(".cem").textContent = p.emoji||"";
+  el.querySelector(".nm").textContent = p.name;
   const prev = prevVals[p.id];
   ["kokteyl","tekila"].forEach(k=>{
     const v = el.querySelector(`[data-v="${k}"]`);
@@ -636,7 +628,7 @@ function refreshArchive(){
           <div class="arc-row">
             <span class="ar-rk">${i+1}</span>
             <span class="ar-nm">${p.emoji||""} <span class="txt">${esc(p.name)}</span></span>
-            <span class="ar-d"><span class="k">🍹${p.kokteyl||0}</span> · <span class="t">🥃${p.tekila||0}</span></span>
+            <span class="ar-d"><span class="k">🍸${p.kokteyl||0}</span> · <span class="t">🌵${p.tekila||0}</span></span>
             <span class="ar-tot">${p.t}</span>
           </div>`).join("")}
       </div>`;
