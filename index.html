@@ -36,11 +36,14 @@
     background-attachment:fixed;
     color:var(--foam);
     font-family:"Space Grotesk",system-ui,sans-serif;
-    min-height:100vh;
-    padding:0 0 calc(124px + env(safe-area-inset-bottom));
+    height:100vh;height:100dvh;overflow:hidden;
+    display:flex;flex-direction:column;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:640px;margin:0 auto;padding:0 16px}
+  .wrap{
+    width:100%;max-width:640px;margin:0 auto;padding:0 16px;
+    flex:1;min-height:0;display:flex;flex-direction:column;
+  }
 
   /* ---------- top bar ---------- */
   .topbar{
@@ -116,10 +119,17 @@
   }
   .weekrow .tot b{color:var(--turq);font-size:16px;font-weight:700}
 
+  /* app shell: header + footer pinned, only #board scrolls */
+  #app{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
   /* ---------- leaderboard (Variant A: tek satır, çift stepper) ---------- */
-  #board{display:flex;flex-direction:column;gap:8px;position:relative}
+  #board{
+    flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;gap:8px;position:relative;
+    padding-bottom:6px;
+  }
   .card{
-    display:flex;align-items:center;gap:8px;
+    display:flex;align-items:center;gap:8px;flex:0 0 auto;
     background:linear-gradient(180deg,var(--card),var(--card-2));
     border:1px solid var(--line);border-radius:12px;padding:7px 10px;height:54px;
     will-change:transform;
@@ -178,11 +188,11 @@
   .btn-primary:hover{filter:brightness(1.07)}
   .btn-primary:active{transform:translateY(1px)}
 
-  /* ---------- footer ---------- */
+  /* ---------- footer (in-flow bottom bar) ---------- */
   .footbar{
-    position:fixed;left:0;right:0;bottom:0;z-index:30;
-    background:linear-gradient(180deg,rgba(4,22,31,.4),rgba(4,22,31,.96));
-    backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    flex:0 0 auto;
+    background:rgba(4,22,31,.92);
+    border-top:1px solid var(--line);
     padding:12px 16px calc(12px + env(safe-area-inset-bottom));
   }
   .footbar .inner{max-width:640px;margin:0 auto;display:flex;gap:10px}
@@ -329,17 +339,6 @@ const SEED = [
 const $ = s => document.querySelector(s);
 const isConfigured = !String(firebaseConfig.apiKey).includes("PASTE");
 
-// keep last list item clear of the fixed bottom bar (measured, device-proof)
-function setFootPad(){
-  const f = $("#footbar");
-  if(f && f.style.display !== "none"){
-    document.body.style.paddingBottom = (f.offsetHeight + 28) + "px";
-  }
-}
-window.addEventListener("resize", setFootPad);
-window.addEventListener("load", setFootPad);
-window.addEventListener("orientationchange", ()=>setTimeout(setFootPad,200));
-
 // block pinch / double-tap zoom (touch-action handles the rest)
 document.addEventListener("gesturestart", e=>e.preventDefault());
 
@@ -379,7 +378,6 @@ function start(){
   const app = initializeApp(firebaseConfig);
   db = getDatabase(app);
   $("#footbar").style.display = "block";
-  setFootPad();
 
   onValue(ref(db,"state"), snap => {
     const v = snap.val() || {};
