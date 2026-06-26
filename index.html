@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Öz-Tekne · Gin & Tekila Defteri</title>
 <meta name="theme-color" content="#06212E" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,7 +28,7 @@
     --shadow:0 14px 40px -18px rgba(0,0,0,.7);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
+  html,body{height:100%;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{
     background:
       radial-gradient(1200px 520px at 50% -8%, #0d3d4c 0%, transparent 60%),
@@ -130,7 +130,6 @@
     text-align:center;font-weight:700;
   }
   .card.lead .rank{color:var(--sun)}
-  .cem{font-size:18px;flex:0 0 auto}
   .nm{flex:1;min-width:0;font-weight:700;font-size:15px;letter-spacing:.01em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -330,6 +329,20 @@ const SEED = [
 const $ = s => document.querySelector(s);
 const isConfigured = !String(firebaseConfig.apiKey).includes("PASTE");
 
+// keep last list item clear of the fixed bottom bar (measured, device-proof)
+function setFootPad(){
+  const f = $("#footbar");
+  if(f && f.style.display !== "none"){
+    document.body.style.paddingBottom = (f.offsetHeight + 28) + "px";
+  }
+}
+window.addEventListener("resize", setFootPad);
+window.addEventListener("load", setFootPad);
+window.addEventListener("orientationchange", ()=>setTimeout(setFootPad,200));
+
+// block pinch / double-tap zoom (touch-action handles the rest)
+document.addEventListener("gesturestart", e=>e.preventDefault());
+
 let db = null, state = { weekId:null, startedAt:null, crew:{} };
 let archive = {};
 const nodes = new Map();       // crew id -> card element
@@ -366,6 +379,7 @@ function start(){
   const app = initializeApp(firebaseConfig);
   db = getDatabase(app);
   $("#footbar").style.display = "block";
+  setFootPad();
 
   onValue(ref(db,"state"), snap => {
     const v = snap.val() || {};
@@ -499,7 +513,6 @@ function makeCard(id){
   el.dataset.id = id;
   el.innerHTML = `
     <span class="rank"></span>
-    <span class="cem"></span>
     <span class="nm"></span>
     ${drinkHtml("kokteyl")}
     ${drinkHtml("tekila")}`;
@@ -524,7 +537,6 @@ function drinkHtml(k){
 function updateCard(el, p, index, isLead){
   el.classList.toggle("lead", !!isLead);
   el.querySelector(".rank").textContent = index+1;
-  el.querySelector(".cem").textContent = p.emoji||"";
   el.querySelector(".nm").textContent = p.name;
   const prev = prevVals[p.id];
   ["kokteyl","tekila"].forEach(k=>{
