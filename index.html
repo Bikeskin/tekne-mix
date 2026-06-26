@@ -37,7 +37,7 @@
     color:var(--foam);
     font-family:"Space Grotesk",system-ui,sans-serif;
     min-height:100vh;
-    padding:0 0 96px;
+    padding:0 0 calc(124px + env(safe-area-inset-bottom));
     -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:640px;margin:0 auto;padding:0 16px}
@@ -133,12 +133,8 @@
   .crewname{font-weight:700;font-size:17px;letter-spacing:.01em;display:flex;align-items:center;gap:8px;min-width:0}
   .crewname .em{font-size:18px;flex:0 0 auto}
   .crewname .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ptotal{
-    margin-left:auto;font-family:"Space Mono";font-weight:700;font-size:22px;
-    color:var(--foam);min-width:34px;text-align:right;transition:color .2s;
-  }
-  .ptotal.bump{animation:bump .35s ease}
-  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.28);color:var(--turq)}100%{transform:scale(1)}}
+  .counter .v.bump{animation:bump .32s ease}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.4)}100%{transform:scale(1)}}
 
   .counters{display:flex;gap:10px;margin-top:12px}
   .counter{
@@ -147,7 +143,7 @@
   }
   .counter .meta{display:flex;flex-direction:column;gap:2px;padding-left:6px;min-width:0}
   .counter .meta .t{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--foam-dim);display:flex;align-items:center;gap:5px}
-  .counter .meta .v{font-family:"Space Mono";font-weight:700;font-size:20px;line-height:1}
+  .counter .meta .v{font-family:"Space Mono";font-weight:700;font-size:20px;line-height:1;display:inline-block;transform-origin:left center}
   .counter.kokteyl .v{color:var(--turq)}
   .counter.tekila .v{color:var(--coral)}
   .btns{display:flex;gap:6px;flex:0 0 auto}
@@ -341,7 +337,7 @@ const isConfigured = !String(firebaseConfig.apiKey).includes("PASTE");
 let db = null, state = { weekId:null, startedAt:null, crew:{} };
 let archive = {};
 const nodes = new Map();       // crew id -> card element
-let prevTotals = {};           // for bump animation
+let prevVals = {};             // for bump animation (per drink)
 
 /* ---------- SETUP screen if not configured ---------- */
 if(!isConfigured){
@@ -410,16 +406,21 @@ function initWeek(){
 
 /* ---------- crew helpers ---------- */
 function total(p){ return (p.kokteyl||0) + (p.tekila||0); }
-function sortedCrew(){
+function orderedCrew(){   // fixed display order = insertion order
   return Object.entries(state.crew||{})
     .map(([id,p]) => ({id, ...p}))
-    .sort((a,b) => total(b)-total(a) || (a.order||0)-(b.order||0) || a.name.localeCompare(b.name,"tr"));
+    .sort((a,b) => (a.order||0)-(b.order||0) || a.name.localeCompare(b.name,"tr"));
+}
+function champion(list){  // leader by total, for the captain strip only
+  return [...list].sort((a,b)=> total(b)-total(a) || (a.order||0)-(b.order||0));
 }
 
 /* ---------- render leaderboard with FLIP reordering ---------- */
 function render(){
-  const list = sortedCrew();
+  const list = orderedCrew();
   const grandTotal = list.reduce((s,p)=>s+total(p),0);
+  const ranked = champion(list);
+  const top = ranked[0];
 
   // champion strip + week strip + board container (build once)
   if(!$("#board")){
@@ -436,40 +437,41 @@ function render(){
 
   // champion
   const cap = $("#captain");
-  const top = list[0];
+  const topTotal = top ? total(top) : 0;
+  const leadIds = new Set(topTotal>0 ? ranked.filter(p=>total(p)===topTotal).map(p=>p.id) : []);
   if(!top){
     cap.innerHTML = `<div class="label">Bu haftanın kaptanı</div>
       <div class="empty">Kadro boş. Aşağıdan ekip ekleyip saymaya başlayın 🍹</div>`;
-  } else if(total(top)===0){
+  } else if(topTotal===0){
     cap.innerHTML = `<div class="waterline" style="height:0"></div>
       <div class="label">Bu haftanın kaptanı</div>
       <div class="empty">Henüz kimse içmedi. İlk bardağı kim açacak? 🥃</div>`;
   } else {
-    const tie = list.filter(p=>total(p)===total(top));
+    const tie = ranked.filter(p=>total(p)===topTotal);
     const nameHtml = tie.length>1
       ? tie.slice(0,2).map(p=>`${p.emoji||""} ${p.name}`).join("  &amp;  ")
       : `<span class="em">${top.emoji||""}</span><span class="nm">${esc(top.name)}</span>`;
-    const fill = Math.min(100, 28 + total(top)/Math.max(1,grandTotal)*72);
+    const fill = Math.min(100, 28 + topTotal/Math.max(1,grandTotal)*72);
     cap.innerHTML = `
       <div class="waterline" style="height:${fill}%"></div>
       <div class="label">Bu haftanın kaptanı${tie.length>1?" · başa baş":""}</div>
       <div class="who">${tie.length>1?`<span class="nm" style="font-size:24px">${nameHtml}</span>`:nameHtml}
-        <span class="sc">${total(top)} <small>bardak</small></span>
+        <span class="sc">${topTotal} <small>bardak</small></span>
       </div>`;
   }
 
-  // FLIP: measure old positions
+  // FLIP: measure old positions (rows only move on add/remove, not on score change)
   const board = $("#board");
   const firstRects = new Map();
   nodes.forEach((el,id)=>firstRects.set(id, el.getBoundingClientRect()));
 
   // sync nodes: create/update
   const seen = new Set();
-  list.forEach(p=>{
+  list.forEach((p,i)=>{
     seen.add(p.id);
     let el = nodes.get(p.id);
     if(!el){ el = makeCard(p.id); nodes.set(p.id, el); }
-    updateCard(el, p, list);
+    updateCard(el, p, i, leadIds.has(p.id));
   });
   // remove stale
   nodes.forEach((el,id)=>{ if(!seen.has(id)){ el.remove(); nodes.delete(id); } });
@@ -492,7 +494,7 @@ function render(){
       });
     });
   }
-  prevTotals = Object.fromEntries(list.map(p=>[p.id, total(p)]));
+  prevVals = Object.fromEntries(list.map(p=>[p.id, {kokteyl:p.kokteyl||0, tekila:p.tekila||0}]));
 }
 
 function makeCard(id){
@@ -503,7 +505,6 @@ function makeCard(id){
     <div class="head">
       <span class="rank"></span>
       <span class="crewname"><span class="em"></span><span class="txt"></span></span>
-      <span class="ptotal"></span>
     </div>
     <div class="counters">
       ${drinkHtml("kokteyl")}
@@ -528,20 +529,18 @@ function drinkHtml(k){
     </div>
   </div>`;
 }
-function updateCard(el, p, list){
-  const rank = list.findIndex(x=>x.id===p.id)+1;
-  el.classList.toggle("lead", rank===1 && total(p)>0);
-  el.querySelector(".rank").textContent = rank;
+function updateCard(el, p, index, isLead){
+  el.classList.toggle("lead", !!isLead);
+  el.querySelector(".rank").textContent = index+1;
   el.querySelector(".crewname .em").textContent = p.emoji||"";
   el.querySelector(".crewname .txt").textContent = p.name;
-  el.querySelector('[data-v="kokteyl"]').textContent = p.kokteyl||0;
-  el.querySelector('[data-v="tekila"]').textContent  = p.tekila||0;
-  const pt = el.querySelector(".ptotal");
-  const t = total(p);
-  if(prevTotals[p.id]!==undefined && prevTotals[p.id]!==t){
-    pt.classList.remove("bump"); void pt.offsetWidth; pt.classList.add("bump");
-  }
-  pt.textContent = t;
+  const prev = prevVals[p.id];
+  ["kokteyl","tekila"].forEach(k=>{
+    const v = el.querySelector(`[data-v="${k}"]`);
+    const val = p[k]||0;
+    if(prev && prev[k]!==val){ v.classList.remove("bump"); void v.offsetWidth; v.classList.add("bump"); }
+    v.textContent = val;
+  });
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
