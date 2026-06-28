@@ -28,7 +28,7 @@
     --shadow:0 14px 40px -18px rgba(0,0,0,.7);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  html,body{height:100%;background:#04161f;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{
     background:
       radial-gradient(1200px 520px at 50% -8%, #0d3d4c 0%, transparent 60%),
@@ -38,6 +38,9 @@
     font-family:"Space Grotesk",system-ui,sans-serif;
     height:100vh;height:100dvh;overflow:hidden;
     display:flex;flex-direction:column;
+    padding-top:env(safe-area-inset-top);
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
     -webkit-font-smoothing:antialiased;
   }
   .wrap{
@@ -115,9 +118,12 @@
   .weekrow .wk b{color:var(--foam);font-weight:700}
   .weekrow .tot{
     font-family:"Space Mono";font-size:13px;color:var(--foam-dim);
-    display:flex;align-items:center;gap:8px;
+    display:flex;align-items:center;gap:14px;
   }
-  .weekrow .tot b{color:var(--turq);font-size:16px;font-weight:700}
+  .weekrow .tot .seg{display:inline-flex;align-items:center;gap:5px}
+  .weekrow .tot .seg b{font-size:17px;font-weight:700}
+  .weekrow .tot .seg.k b{color:var(--turq)}
+  .weekrow .tot .seg.t b{color:var(--coral)}
 
   /* app shell: header + footer pinned, only #board scrolls */
   #app{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
@@ -283,7 +289,6 @@
     <div class="sh-head"><h2>Kadro</h2><button class="x" data-close>×</button></div>
     <div id="crewList"></div>
     <div class="add-row">
-      <input class="emoji-in" id="newEmoji" maxlength="4" placeholder="🌊" />
       <input class="name-in" id="newName" placeholder="Yeni isim ekle" />
       <button class="btn-primary" id="addCrew">Ekle</button>
     </div>
@@ -436,12 +441,16 @@ function render(){
       <div class="captain" id="captain"></div>
       <div class="weekrow">
         <div class="wk">Hafta: <b id="wkLabel"></b></div>
-        <div class="tot">Toplam bardak <b id="grandTotal">0</b></div>
+        <div class="tot">
+          <span class="seg k">${DRINKS.kokteyl.emoji} <b id="kTotal">0</b></span>
+          <span class="seg t">${DRINKS.tekila.emoji} <b id="tTotal">0</b></span>
+        </div>
       </div>
       <div id="board"></div>`;
   }
   $("#wkLabel").textContent = fmtWeek(state.weekId);
-  $("#grandTotal").textContent = grandTotal;
+  $("#kTotal").textContent = list.reduce((s,p)=>s+(p.kokteyl||0),0);
+  $("#tTotal").textContent = list.reduce((s,p)=>s+(p.tekila||0),0);
 
   // champion
   const cap = $("#captain");
@@ -579,11 +588,9 @@ function refreshCrewModal(){
     const row = document.createElement("div");
     row.className = "crew-edit";
     row.innerHTML = `
-      <input class="emoji-in" maxlength="4" value="${esc(p.emoji||"")}" />
       <input class="name-in" value="${esc(p.name)}" />
       <button class="del" title="Çıkar">🗑</button>`;
-    const [emojiIn, nameIn] = row.querySelectorAll("input");
-    emojiIn.addEventListener("change", ()=>update(ref(db,`state/crew/${p.id}`),{emoji:emojiIn.value}));
+    const nameIn = row.querySelector(".name-in");
     nameIn.addEventListener("change", ()=>{ if(nameIn.value.trim()) update(ref(db,`state/crew/${p.id}`),{name:nameIn.value.trim()}); });
     row.querySelector(".del").addEventListener("click", ()=>{
       if(confirm(`${p.name} kadrodan çıkarılsın mı?`)) remove(ref(db,`state/crew/${p.id}`));
@@ -598,8 +605,8 @@ function addCrewFromInputs(){
   const name = $("#newName").value.trim();
   if(!name) return;
   const order = Object.keys(state.crew||{}).length;
-  push(ref(db,"state/crew"), { name, emoji:$("#newEmoji").value.trim()||"🌊", kokteyl:0, tekila:0, order });
-  $("#newName").value=""; $("#newEmoji").value="";
+  push(ref(db,"state/crew"), { name, emoji:"", kokteyl:0, tekila:0, order });
+  $("#newName").value="";
   $("#newName").focus();
 }
 $("#seedLink").addEventListener("click", e=>{
